@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "airflow-project"
+version = "0.1.0"
+description = "Apache Airflow project with Poetry"
+authors = ["Your Name <your.email@example.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+apache-airflow-providers-postgres = "5.8.0"
+apache-airflow-providers-docker = "3.7.0"
+pandas = "2.1.4"
+requests = "2.31.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api" 
