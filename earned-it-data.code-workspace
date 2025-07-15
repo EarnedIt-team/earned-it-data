@@ -1,0 +1,122 @@
+{
+  "folders": [
+    {
+      "name": "Airflow",
+      "path": "./airflow"
+    },
+    {
+      "name": "Reindeer",
+      "path": "./reindeer"
+    },
+    {
+      "name": "Root",
+      "path": "."
+    }
+  ],
+  "settings": {
+    "python.defaultInterpreterPath": "./airflow/.venv/bin/python",
+    "python.terminal.activateEnvironment": true,
+    "python.linting.enabled": true,
+    "python.linting.pylintEnabled": true,
+    "python.linting.flake8Enabled": true,
+    "python.formatting.provider": "black",
+    "python.sortImports.args": ["--profile", "black"],
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": "explicit"
+    },
+    "files.exclude": {
+      "**/__pycache__": true,
+      "**/.pytest_cache": true,
+      "**/.mypy_cache": true,
+      "**/node_modules": true,
+      "**/.venv": false
+    },
+    "search.exclude": {
+      "**/logs": true,
+      "**/.git": true,
+      "**/node_modules": true,
+      "**/.venv": true
+    }
+  },
+  "extensions": {
+    "recommendations": [
+      "ms-python.python",
+      "ms-python.flake8",
+      "ms-python.black-formatter",
+      "ms-python.isort",
+      "ms-toolsai.jupyter",
+      "ms-azuretools.vscode-docker",
+      "redhat.vscode-yaml",
+      "ms-vscode.vscode-json"
+    ]
+  },
+  "launch": {
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "name": "Python: Airflow DAG",
+        "type": "python",
+        "request": "launch",
+        "program": "${workspaceFolder}/airflow/dags/${fileBasenameNoExtension}.py",
+        "console": "integratedTerminal",
+        "cwd": "${workspaceFolder}/airflow"
+      },
+      {
+        "name": "Python: Reindeer API",
+        "type": "python",
+        "request": "launch",
+        "program": "${workspaceFolder}/reindeer/app/app.py",
+        "console": "integratedTerminal",
+        "cwd": "${workspaceFolder}/reindeer"
+      }
+    ]
+  },
+  "tasks": {
+    "version": "2.0.0",
+    "tasks": [
+      {
+        "label": "Airflow: Start",
+        "type": "shell",
+        "command": "./start.sh",
+        "group": "build",
+        "options": {
+          "cwd": "${workspaceFolder}/airflow"
+        },
+        "presentation": {
+          "echo": true,
+          "reveal": "always",
+          "focus": false,
+          "panel": "shared"
+        }
+      },
+      {
+        "label": "Airflow: Stop",
+        "type": "shell",
+        "command": "docker-compose down",
+        "group": "build",
+        "options": {
+          "cwd": "${workspaceFolder}/airflow"
+        }
+      },
+      {
+        "label": "Reindeer: Install Dependencies",
+        "type": "shell",
+        "command": "uv sync",
+        "group": "build",
+        "options": {
+          "cwd": "${workspaceFolder}/reindeer"
+        }
+      },
+      {
+        "label": "Reindeer: Start API",
+        "type": "shell",
+        "command": "uv run uvicorn app.app:app --reload --host 0.0.0.0 --port 8000",
+        "group": "build",
+        "options": {
+          "cwd": "${workspaceFolder}/reindeer"
+        }
+      }
+    ]
+  }
+}
