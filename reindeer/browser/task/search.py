@@ -35,6 +35,7 @@ async def search_product(
     query: str, 
     use_cache: bool = True,
     remove_background: bool = True,
+    display: int = 10,
     search_usecase: SearchProduct = Provide[BaseContainer.search_product]
 ):
     """
@@ -45,7 +46,8 @@ async def search_product(
         products = await search_usecase.search_product(
             query=query,
             use_cache=use_cache,
-            remove_background=remove_background
+            remove_background=remove_background,
+            display=display
         )
         
         return products

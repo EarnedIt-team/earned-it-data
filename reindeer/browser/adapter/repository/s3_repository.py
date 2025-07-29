@@ -15,10 +15,18 @@ logger = logging.getLogger(__name__)
 
 
 class S3Repository(ImageRepository):
-    def __init__(self, s3_client, bucket_name: str, http_session: aiohttp.ClientSession):
+    def __init__(self, s3_client, bucket_name: str, timeout: int = 20):
         self.s3_client = s3_client
         self.bucket_name = bucket_name
-        self.session = http_session
+        self.timeout = timeout
+        self.session = None
+    
+    async def _get_session(self) -> aiohttp.ClientSession:
+        """HTTP 세션을 가져옵니다. 없으면 새로 생성합니다."""
+        if self.session is None or self.session.closed:
+            timeout_config = aiohttp.ClientTimeout(total=self.timeout)
+            self.session = aiohttp.ClientSession(timeout=timeout_config)
+        return self.session
     
     def _generate_image_id(self, image_url: str) -> str:
         """이미지 URL을 기반으로 고유한 이미지 ID를 생성합니다."""
@@ -58,7 +66,7 @@ class S3Repository(ImageRepository):
             logger.error(f"배경 제거 중 오류 발생: {e}")
             return None
     
-    async def save_image(self, image_url: str, remove_background: bool = True) -> bool:
+    async def save_image(self, image_url: str, remove_background: bool = True) -> Optional[str]:
         """
         이미지를 다운로드하고 S3에 저장합니다.
         
@@ -67,34 +75,21 @@ class S3Repository(ImageRepository):
             remove_background: 배경 제거 여부
         
         Returns:
-            저장 성공 여부
+            저장된 S3 이미지 URL (배경 제거된 이미지 우선, 실패시 원본 이미지 URL)
         """
         try:
             image_id = self._generate_image_id(image_url)
             
             original_key = self._get_s3_key(image_id, with_background=True)
-            
             no_bg_key = self._get_s3_key(image_id, with_background=False) if remove_background else None
             
-            try:
-                self.s3_client.head_object(Bucket=self.bucket_name, Key=original_key)
-                if remove_background and no_bg_key:
-                    try:
-                        self.s3_client.head_object(Bucket=self.bucket_name, Key=no_bg_key)
-                        return True
-                    except ClientError as e:
-                        if e.response['Error']['Code'] != '404':
-                            raise
-                else:
-                    return True
-            except ClientError as e:
-                if e.response['Error']['Code'] != '404':
-                    raise
-            
-            async with self.session.get(image_url) as response:
+            # 항상 새로 이미지를 다운로드하고 처리
+            session = await self._get_session()
+            async with session.get(image_url) as response:
                 if response.status == 200:
                     image_data = await response.read()
                     
+                    # 원본 이미지 저장 (기존 이미지 대체)
                     await asyncio.get_event_loop().run_in_executor(
                         None,
                         lambda: self.s3_client.put_object(
@@ -105,8 +100,8 @@ class S3Repository(ImageRepository):
                         )
                     )
                     
+                    # 배경 제거 처리
                     if remove_background and no_bg_key:
-                        logger.info(f"배경 제거 중: {image_url}")
                         no_bg_data = await self._remove_background(image_data)
                         
                         if no_bg_data:
@@ -119,20 +114,22 @@ class S3Repository(ImageRepository):
                                     ContentType='image/png'
                                 )
                             )
-                            logger.info(f"배경 제거 완료: {image_url}")
+                            # 배경 제거 성공시 배경 제거 이미지 URL 반환
+                            return await self.get_image(image_id, with_background=False)
                         else:
-                            logger.warning(f"배경 제거 실패: {image_url}")
+                            logger.warning(f"배경 제거 실패 - 원본 이미지 사용: {image_url}")
                     
-                    return True
+                    # 배경 제거가 없거나 실패한 경우 원본 이미지 URL 반환
+                    return await self.get_image(image_id, with_background=True)
                 else:
                     logger.error(f"이미지 다운로드 실패: {response.status}")
-                    return False
+                    return None
                     
         except Exception as e:
             logger.error(f"이미지 저장 중 오류 발생: {e}")
-            return False
+            return None
     
-    async def save_image_with_background_removal(self, image_url: str) -> bool:
+    async def save_image_with_background_removal(self, image_url: str) -> Optional[str]:
         """
         이미지를 다운로드하고 배경을 제거하여 S3에 저장합니다.
         
@@ -140,7 +137,7 @@ class S3Repository(ImageRepository):
             image_url: 이미지 URL
         
         Returns:
-            저장 성공 여부
+            저장된 S3 이미지 URL
         """
         return await self.save_image(image_url, remove_background=True)
     
@@ -216,6 +213,7 @@ class S3Repository(ImageRepository):
         return await self.get_image_by_url(original_url, with_background=False)
     
     async def close(self):
-        """세션을 닫습니다."""
+        """HTTP 세션을 닫습니다."""
         if self.session and not self.session.closed:
             await self.session.close()
+            self.session = None

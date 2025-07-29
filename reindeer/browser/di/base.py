@@ -2,7 +2,7 @@ from dependency_injector import providers
 from dependency_injector.containers import DeclarativeContainer
 from browser.di.config import Settings
 from browser.core.infra.postgresql_client import create_postgresql_pool
-from browser.core.infra.s3_client import get_s3_client, get_s3_config, create_http_session
+from browser.core.infra.s3_client import get_s3_client, get_s3_config
 from browser.core.infra.naver_client import create_naver_client
 from browser.adapter.repository.postgresql_repository import PostgreSQLRepository
 from browser.adapter.repository.s3_repository import S3Repository
@@ -33,12 +33,6 @@ class BaseContainer(DeclarativeContainer):
         get_s3_config,
     )
     
-    # HTTP session resources (generator 함수를 사용한 Resource)
-    http_session = providers.Resource(
-        create_http_session,
-        timeout=config.s3_timeout,
-    )
-    
     # Naver client resource (generator 함수를 사용한 Resource)
     naver_client = providers.Resource(
         create_naver_client,
@@ -56,7 +50,7 @@ class BaseContainer(DeclarativeContainer):
         S3Repository,
         s3_client=s3_client,
         bucket_name=config.s3_bucket_name,
-        http_session=http_session,
+        timeout=config.s3_timeout,
     )
     
     # Product fetchers

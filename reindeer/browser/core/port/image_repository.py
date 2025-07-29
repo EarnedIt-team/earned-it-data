@@ -1,14 +1,15 @@
 from abc import ABC, abstractmethod
-
+from typing import Optional
 
 class ImageRepository(ABC):
     @abstractmethod
-    def save_image(self, image_url: str) -> bool:
+    def save_image(self, image_url: str, remove_background: bool = True) -> Optional[str]:
         """
         이미지를 저장합니다.
 
         :param image_url: 저장할 이미지의 URL
-        :return: 저장 성공 여부
+        :param remove_background: 배경 제거 여부
+        :return: 저장된 S3 이미지 URL (없으면 None)
         """
         ...
 

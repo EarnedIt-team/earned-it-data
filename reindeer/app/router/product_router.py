@@ -30,7 +30,9 @@ async def search_products_get(
     remove_background: bool = Query(True, 
                                     description="배경 제거 여부", 
                                     example=True),
-
+    display: int = Query(10, 
+                        description="표시할 결과 수", 
+                        example=10),
 ):
     """
     ## GET 방식으로 제품을 검색합니다.
@@ -48,7 +50,8 @@ async def search_products_get(
     request = SearchRequest(
         query=query,
         use_cache=use_cache,
-        remove_background=remove_background
+        remove_background=remove_background,
+        display=display
     )
     
     try:
@@ -56,7 +59,8 @@ async def search_products_get(
         products = await search_product(
             query=request.query,
             use_cache=request.use_cache,
-            remove_background=request.remove_background
+            remove_background=request.remove_background,
+            display=display
         )
         
         # DTO 변환
@@ -70,7 +74,8 @@ async def search_products_get(
             total_count=len(product_responses),
             query=request.query,
             use_cache=request.use_cache,
-            remove_background=request.remove_background
+            remove_background=request.remove_background,
+            display=display
         )
         
     except Exception as e:
