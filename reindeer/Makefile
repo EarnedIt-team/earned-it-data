@@ -18,7 +18,7 @@ dev-setup: install ## 개발 환경 초기 설정
 
 # 서버 실행
 run: ## 개발 서버 실행
-	uv run uvicorn app.app:app --reload --host 0.0.0.0 --port 8000
+	uv run python -m uvicorn app.app:app --reload --host 0.0.0.0 --port 8000
 
 run-prod: ## 프로덕션 서버 실행
 	uv run uvicorn app.app:app --host 0.0.0.0 --port 8000

@@ -17,8 +17,8 @@ class Settings(BaseSettings):
     # S3 settings
     aws_access_key_id: str = ""
     aws_secret_access_key: str = ""
-    aws_region: str = "us-east-1"
-    s3_bucket_name: str = "product-images"
+    aws_region: str = "ap-northeast-2"
+    s3_bucket_name: str = "reindeer-product-images"
     s3_timeout: int = 20
     
     # Naver API settings
